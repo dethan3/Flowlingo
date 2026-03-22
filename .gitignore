@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+
+# Node / package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun.lockb
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Expo / React Native
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Metro / tests / coverage
+.metro-health-check*
+coverage/
+.nyc_output/
+
+# Build artifacts
+build/
+out/
+tmp/
+temp/
+
+# TypeScript
+*.tsbuildinfo
+
+# IDEs / editors
+.idea/
+.vscode/
+
+# Logs
+*.log
