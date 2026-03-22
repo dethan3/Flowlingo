@@ -19,6 +19,7 @@ bun.lockb
 .expo-shared/
 dist/
 web-build/
+.next/
 
 # Metro / tests / coverage
 .metro-health-check*
