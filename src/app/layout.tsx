@@ -7,24 +7,22 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Flowlingo",
-  description: "A calm, comprehensible-input English learning demo built as a web-first PWA.",
+  description:
+    "AI-powered daily English acquisition through real-life scenarios.",
   applicationName: "Flowlingo",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Flowlingo"
-  }
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1d8f6a"
+  themeColor: "#1d8f6a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-bg text-ink">
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -3,21 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { useFlowlingoStore } from "@/state/use-flowlingo-store";
+import { useStore } from "@/state/use-flowlingo-store";
 
 export default function HomePage() {
   const router = useRouter();
-  const profile = useFlowlingoStore((state) => state.profile);
+  const settings = useStore((s) => s.settings);
 
   useEffect(() => {
-    router.replace(profile ? "/today" : "/onboarding");
-  }, [profile, router]);
+    router.replace(settings ? "/today" : "/setup");
+  }, [settings, router]);
 
   return (
-    <section className="hero">
-      <p className="eyebrow">Flowlingo</p>
-      <h1>Preparing your daily loop...</h1>
-      <p>We are opening the calmest path into English we can build.</p>
-    </section>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+      <div className="w-10 h-10 rounded-full bg-accent/20 animate-pulse" />
+      <p className="text-muted text-sm">Loading Flowlingo...</p>
+    </div>
   );
 }

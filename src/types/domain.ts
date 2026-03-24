@@ -1,66 +1,73 @@
-export type Goal =
-  | "build-confidence"
-  | "daily-input"
-  | "travel"
-  | "work-communication";
+// --- Enums / Unions ---
 
-export type Level = "beginner" | "lower-intermediate" | "intermediate";
+export type Difficulty = 1 | 2 | 3 | 4;
 
-export type Topic =
+export type Domain =
   | "daily-life"
   | "travel"
   | "work"
-  | "friendship"
+  | "social"
   | "culture";
 
-export type PracticeType = "retell" | "comprehension";
+export type DailyMinutes = 5 | 10 | 15;
 
-export interface Phrase {
+export type Familiarity = "new" | "learning" | "mastered";
+
+export type PracticeType = "comprehension" | "fill-in" | "retell";
+
+// --- User Settings ---
+
+export interface UserSettings {
+  difficulty: Difficulty;
+  domains: Domain[];
+  dailyMinutes: DailyMinutes;
+}
+
+// --- Scenario (AI-generated) ---
+
+export interface Expression {
   id: string;
   text: string;
   meaning: string;
   example: string;
-  familiarity: 1 | 2 | 3;
+  familiarity: Familiarity;
+  savedAt: string | null;
+  sourceScenarioId: string;
+  sourceSentenceText: string;
 }
 
 export interface Sentence {
   id: string;
   text: string;
   translation: string;
-  audioKey: string;
-  phrases: Phrase[];
+  expressions: Expression[];
 }
 
-export interface Lesson {
+export interface PracticePrompt {
+  type: PracticeType;
+  question: string;
+  options: string[] | null;
+  referenceAnswer: string;
+}
+
+export interface Scenario {
   id: string;
   title: string;
-  topic: Topic;
-  difficulty: Level;
-  estimatedMinutes: number;
-  summary: string;
+  description: string;
+  domain: Domain;
+  difficulty: Difficulty;
   sentences: Sentence[];
+  practicePrompt: PracticePrompt;
+  generatedAt: string;
 }
 
-export interface UserProfile {
-  id: string;
-  goal: Goal;
-  topics: Topic[];
-  level: Level;
-  dailyMinutes: number;
-}
+// --- Daily Record ---
 
-export interface DailyPlan {
+export interface DailyRecord {
   date: string;
-  lessonId: string;
-  reviewPhraseIds: string[];
-  practiceType: PracticeType;
-  completed: boolean;
-}
-
-export interface PracticeAttempt {
-  id: string;
-  lessonId: string;
-  type: PracticeType;
-  sentenceId: string;
-  completedAt: string;
+  scenarioId: string;
+  practiceCompleted: boolean;
+  replayCompleted: boolean;
+  expressionsSaved: number;
+  streak: number;
 }

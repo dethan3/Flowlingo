@@ -3,103 +3,214 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import { getLessonById } from "@/data/lessons";
-import { buildDailyPlan, getReplayPhrases } from "@/services/demo-plan";
-import { DailyPlan, Phrase, PracticeAttempt, UserProfile } from "@/types/domain";
+import type {
+  DailyRecord,
+  Expression,
+  Scenario,
+  UserSettings,
+} from "@/types/domain";
 
 interface FlowlingoState {
-  profile: UserProfile | null;
-  dailyPlan: DailyPlan | null;
-  savedPhrases: Phrase[];
-  practiceAttempts: PracticeAttempt[];
-  completedLessons: string[];
-  createProfile: (profile: UserProfile) => void;
-  savePhrase: (phrase: Phrase) => void;
-  completePractice: (lessonId: string, sentenceId: string, type: PracticeAttempt["type"]) => void;
-  completeLesson: (lessonId: string) => void;
-  resetDemo: () => void;
+  settings: UserSettings | null;
+  currentScenario: Scenario | null;
+  savedExpressions: Expression[];
+  dailyRecords: DailyRecord[];
+  recentScenarioTitles: string[];
+
+  saveSettings: (s: UserSettings) => void;
+  updateSettings: (patch: Partial<UserSettings>) => void;
+  setCurrentScenario: (scenario: Scenario) => void;
+  saveExpression: (expr: Expression) => void;
+  updateExpressionFamiliarity: (
+    id: string,
+    familiarity: Expression["familiarity"]
+  ) => void;
+  completePractice: () => void;
+  completeReplay: () => void;
+  completeDay: () => void;
+  resetAll: () => void;
 }
 
-const initialState = {
-  profile: null,
-  dailyPlan: null,
-  savedPhrases: [],
-  practiceAttempts: [],
-  completedLessons: []
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function currentStreak(records: DailyRecord[]): number {
+  if (records.length === 0) return 0;
+  const sorted = [...records].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  let streak = 0;
+  const now = new Date();
+  for (let i = 0; i < sorted.length; i++) {
+    const expected = new Date(now);
+    expected.setDate(expected.getDate() - i);
+    const expectedStr = expected.toISOString().slice(0, 10);
+    if (sorted[i].date === expectedStr) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+const initialState: Pick<
+  FlowlingoState,
+  | "settings"
+  | "currentScenario"
+  | "savedExpressions"
+  | "dailyRecords"
+  | "recentScenarioTitles"
+> = {
+  settings: null,
+  currentScenario: null,
+  savedExpressions: [],
+  dailyRecords: [],
+  recentScenarioTitles: [],
 };
 
-export const useFlowlingoStore = create<FlowlingoState>()(
+export const useStore = create<FlowlingoState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
-      createProfile: (profile) =>
-        set({
-          profile,
-          dailyPlan: buildDailyPlan(profile)
-        }),
-      savePhrase: (phrase) =>
-        set((state) => ({
-          savedPhrases:
-            state.savedPhrases.find((item) => item.id === phrase.id) !== undefined
-              ? state.savedPhrases
-              : [...state.savedPhrases, phrase]
-        })),
-      completePractice: (lessonId, sentenceId, type) =>
-        set((state) => ({
-          practiceAttempts: [
-            ...state.practiceAttempts,
-            {
-              id: `${lessonId}-${sentenceId}-${state.practiceAttempts.length + 1}`,
-              lessonId,
-              sentenceId,
-              type,
-              completedAt: new Date().toISOString()
-            }
-          ]
-        })),
-      completeLesson: (lessonId) =>
-        set((state) => {
-          const nextPlan = state.dailyPlan ? { ...state.dailyPlan, completed: true } : null;
 
+      saveSettings: (s) => set({ settings: s }),
+
+      updateSettings: (patch) =>
+        set((state) => ({
+          settings: state.settings ? { ...state.settings, ...patch } : null,
+        })),
+
+      setCurrentScenario: (scenario) =>
+        set((state) => ({
+          currentScenario: scenario,
+          recentScenarioTitles: [
+            scenario.title,
+            ...state.recentScenarioTitles.filter(
+              (t) => t !== scenario.title
+            ),
+          ].slice(0, 20),
+        })),
+
+      saveExpression: (expr) =>
+        set((state) => {
+          if (state.savedExpressions.some((e) => e.id === expr.id))
+            return state;
+          const saved: Expression = {
+            ...expr,
+            familiarity: "new",
+            savedAt: new Date().toISOString(),
+          };
+          return { savedExpressions: [...state.savedExpressions, saved] };
+        }),
+
+      updateExpressionFamiliarity: (id, familiarity) =>
+        set((state) => ({
+          savedExpressions: state.savedExpressions.map((e) =>
+            e.id === id ? { ...e, familiarity } : e
+          ),
+        })),
+
+      completePractice: () =>
+        set((state) => {
+          const today = todayStr();
+          const existing = state.dailyRecords.find((r) => r.date === today);
+          if (existing) {
+            return {
+              dailyRecords: state.dailyRecords.map((r) =>
+                r.date === today ? { ...r, practiceCompleted: true } : r
+              ),
+            };
+          }
+          const scenario = state.currentScenario;
           return {
-            dailyPlan: nextPlan,
-            completedLessons:
-              state.completedLessons.includes(lessonId) ? state.completedLessons : [...state.completedLessons, lessonId]
+            dailyRecords: [
+              ...state.dailyRecords,
+              {
+                date: today,
+                scenarioId: scenario?.id ?? "",
+                practiceCompleted: true,
+                replayCompleted: false,
+                expressionsSaved: 0,
+                streak: currentStreak(state.dailyRecords) + 1,
+              },
+            ],
           };
         }),
-      resetDemo: () => set(initialState)
+
+      completeReplay: () =>
+        set((state) => {
+          const today = todayStr();
+          return {
+            dailyRecords: state.dailyRecords.map((r) =>
+              r.date === today ? { ...r, replayCompleted: true } : r
+            ),
+          };
+        }),
+
+      completeDay: () =>
+        set((state) => {
+          const today = todayStr();
+          const existing = state.dailyRecords.find((r) => r.date === today);
+          const newExprs = state.savedExpressions.filter(
+            (e) =>
+              e.savedAt && e.savedAt.startsWith(today)
+          ).length;
+          const records = existing
+            ? state.dailyRecords.map((r) =>
+                r.date === today
+                  ? {
+                      ...r,
+                      practiceCompleted: true,
+                      replayCompleted: true,
+                      expressionsSaved: newExprs,
+                    }
+                  : r
+              )
+            : [
+                ...state.dailyRecords,
+                {
+                  date: today,
+                  scenarioId: state.currentScenario?.id ?? "",
+                  practiceCompleted: true,
+                  replayCompleted: true,
+                  expressionsSaved: newExprs,
+                  streak: currentStreak(state.dailyRecords) + 1,
+                },
+              ];
+          return { dailyRecords: records };
+        }),
+
+      resetAll: () => set(initialState),
     }),
     {
-      name: "flowlingo-demo",
+      name: "flowlingo-v2",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        profile: state.profile,
-        dailyPlan: state.dailyPlan,
-        savedPhrases: state.savedPhrases,
-        practiceAttempts: state.practiceAttempts,
-        completedLessons: state.completedLessons
-      })
+        settings: state.settings,
+        currentScenario: state.currentScenario,
+        savedExpressions: state.savedExpressions,
+        dailyRecords: state.dailyRecords,
+        recentScenarioTitles: state.recentScenarioTitles,
+      }),
     }
   )
 );
 
-export function useCurrentLesson() {
-  const dailyPlan = useFlowlingoStore((state) => state.dailyPlan);
-
-  if (!dailyPlan) {
-    return null;
-  }
-
-  return getLessonById(dailyPlan.lessonId);
+export function useStreak() {
+  const records = useStore((s) => s.dailyRecords);
+  return currentStreak(records);
 }
 
-export function useReplayQueue() {
-  const dailyPlan = useFlowlingoStore((state) => state.dailyPlan);
-  const savedPhrases = useFlowlingoStore((state) => state.savedPhrases);
+export function useTodayRecord() {
+  const records = useStore((s) => s.dailyRecords);
+  return records.find((r) => r.date === todayStr()) ?? null;
+}
 
-  if (!dailyPlan) {
-    return [];
-  }
-
-  return getReplayPhrases(dailyPlan.lessonId, savedPhrases);
+export function useReplayExpressions() {
+  const saved = useStore((s) => s.savedExpressions);
+  return saved
+    .filter((e) => e.familiarity !== "mastered")
+    .slice(0, 3);
 }
