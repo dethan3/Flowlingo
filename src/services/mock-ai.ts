@@ -462,6 +462,53 @@ export function mockGenerateScenario(
   };
 }
 
+/**
+ * Generate a scenario from a guided learning path step.
+ * In the real implementation, the scenarioPrompt would be sent to the AI.
+ * Here we reuse the existing mock dialogue data keyed by difficulty.
+ */
+export function mockGenerateGuidedScenario(input: {
+  stepId: string;
+  title: string;
+  scenarioPrompt: string;
+  domain: Domain;
+  difficulty: Difficulty;
+  sentenceCount: number;
+}): Scenario {
+  const dialogueData =
+    MOCK_DIALOGUES[input.difficulty]?.default ?? MOCK_DIALOGUES[2].default;
+
+  const scenarioId = uid();
+  const sentences: Sentence[] = dialogueData.sentences
+    .slice(0, input.sentenceCount)
+    .map((s, idx) => ({
+      id: `${scenarioId}-s${idx + 1}`,
+      text: s.text,
+      translation: s.translation,
+      expressions: s.expressions.map((e, eIdx) => ({
+        id: `${scenarioId}-e${idx + 1}-${eIdx + 1}`,
+        text: e.text,
+        meaning: e.meaning,
+        example: e.example,
+        familiarity: "new" as const,
+        savedAt: null,
+        sourceScenarioId: scenarioId,
+        sourceSentenceText: s.text,
+      })),
+    }));
+
+  return {
+    id: scenarioId,
+    title: input.title,
+    description: input.scenarioPrompt,
+    domain: input.domain,
+    difficulty: input.difficulty,
+    sentences,
+    practicePrompt: dialogueData.practice,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 export function mockEvaluatePractice(input: {
   practiceType: string;
   userAnswer: string;

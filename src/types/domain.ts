@@ -15,12 +15,49 @@ export type Familiarity = "new" | "learning" | "mastered";
 
 export type PracticeType = "comprehension" | "fill-in" | "retell";
 
+export type LearningMode = "guided" | "custom";
+
 // --- User Settings ---
 
 export interface UserSettings {
   difficulty: Difficulty;
   domains: Domain[];
   dailyMinutes: DailyMinutes;
+  learningMode: LearningMode;
+}
+
+// --- Vocab Test Result ---
+
+export interface VocabTestResult {
+  level: Difficulty;
+  wordsTestedCount: number;
+  completedAt: string;
+}
+
+// --- Learning Path (Guided mode) ---
+
+export interface LearningPathStep {
+  id: string;
+  title: string;
+  description: string;
+  domain: Domain;
+  difficulty: Difficulty;
+  scenarioPrompt: string;
+}
+
+export interface LearningPath {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: Difficulty;
+  steps: LearningPathStep[];
+}
+
+export interface LearningProgress {
+  pathId: string;
+  currentStepIndex: number;
+  completedStepIds: string[];
+  startedAt: string;
 }
 
 // --- Scenario (AI-generated) ---

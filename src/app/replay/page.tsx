@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Button, PageHeader, ProgressBar } from "@/components/ui";
+import { ROUTES } from "@/constants/routes";
 import {
   useReplayExpressions,
   useStore,
@@ -30,7 +32,7 @@ export default function ReplayPage() {
     }
     if (isLast) {
       completeReplay();
-      router.push("/complete");
+      router.push(ROUTES.COMPLETE);
     } else {
       setCurrentIdx((i) => i + 1);
       setFlipped(false);
@@ -39,29 +41,20 @@ export default function ReplayPage() {
 
   function handleSkipAll() {
     completeReplay();
-    router.push("/complete");
+    router.push(ROUTES.COMPLETE);
   }
 
   if (isEmpty) {
     return (
       <div className="flex flex-col gap-5 min-h-[80vh]">
-        <div>
-          <p className="text-accent text-xs font-semibold tracking-widest uppercase mb-1">
-            Review
-          </p>
-          <h1 className="text-xl font-bold tracking-tight">
-            No expressions to review
-          </h1>
-          <p className="text-muted text-sm mt-1">
-            Save some expressions during your next scenario.
-          </p>
-        </div>
-        <button
-          onClick={handleSkipAll}
-          className="w-full py-3.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
-        >
+        <PageHeader
+          label="Review"
+          title="No expressions to review"
+          subtitle="Save some expressions during your next scenario."
+        />
+        <Button onClick={handleSkipAll} fullWidth>
           Finish Today
-        </button>
+        </Button>
       </div>
     );
   }
@@ -69,27 +62,14 @@ export default function ReplayPage() {
   return (
     <div className="flex flex-col gap-5 min-h-[80vh]">
       {/* Header */}
-      <div>
-        <p className="text-accent text-xs font-semibold tracking-widest uppercase mb-1">
-          Review
-        </p>
-        <h1 className="text-xl font-bold tracking-tight">
-          Do you remember these?
-        </h1>
-        <p className="text-muted text-sm mt-1">
-          {currentIdx + 1} of {expressions.length}
-        </p>
-      </div>
+      <PageHeader
+        label="Review"
+        title="Do you remember these?"
+        subtitle={`${currentIdx + 1} of ${expressions.length}`}
+      />
 
       {/* Progress */}
-      <div className="h-1.5 rounded-full bg-border overflow-hidden">
-        <div
-          className="h-full rounded-full bg-accent transition-all duration-300"
-          style={{
-            width: `${((currentIdx + 1) / expressions.length) * 100}%`,
-          }}
-        />
-      </div>
+      <ProgressBar value={currentIdx + 1} max={expressions.length} />
 
       {/* Card */}
       {current && (
@@ -128,28 +108,19 @@ export default function ReplayPage() {
       {/* Actions */}
       {flipped && (
         <div className="flex gap-3 pt-2 pb-4">
-          <button
-            onClick={() => handleMark(false)}
-            className="flex-1 py-3.5 rounded-xl border border-border text-sm font-medium hover:bg-surface-dim transition-colors"
-          >
+          <Button variant="secondary" fullWidth onClick={() => handleMark(false)}>
             Still learning
-          </button>
-          <button
-            onClick={() => handleMark(true)}
-            className="flex-1 py-3.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
-          >
+          </Button>
+          <Button fullWidth onClick={() => handleMark(true)}>
             Got it!
-          </button>
+          </Button>
         </div>
       )}
 
       {!flipped && (
-        <button
-          onClick={handleSkipAll}
-          className="py-3 text-sm font-medium text-muted hover:text-ink transition-colors"
-        >
+        <Button variant="ghost" onClick={handleSkipAll}>
           Skip review
-        </button>
+        </Button>
       )}
     </div>
   );

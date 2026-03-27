@@ -1,15 +1,25 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { RequireScenario } from "@/components/require-scenario";
+import { Button, ProgressBar } from "@/components/ui";
+import { ROUTES } from "@/constants/routes";
 import { useStore } from "@/state/use-flowlingo-store";
 import type { Expression } from "@/types/domain";
 
 export default function ScenarioPage() {
+  return (
+    <RequireScenario>
+      <ScenarioContent />
+    </RequireScenario>
+  );
+}
+
+function ScenarioContent() {
   const router = useRouter();
-  const scenario = useStore((s) => s.currentScenario);
+  const scenario = useStore((s) => s.currentScenario)!;
   const saveExpression = useStore((s) => s.saveExpression);
   const savedExpressions = useStore((s) => s.savedExpressions);
 
@@ -17,16 +27,9 @@ export default function ScenarioPage() {
   const [showTranslation, setShowTranslation] = useState(false);
   const [expandedExpr, setExpandedExpr] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!scenario) router.replace("/today");
-  }, [scenario, router]);
-
-  if (!scenario) return null;
-
   const sentences = scenario.sentences;
   const current = sentences[currentIdx];
   const isLast = currentIdx === sentences.length - 1;
-  const progress = ((currentIdx + 1) / sentences.length) * 100;
 
   function isSaved(exprId: string) {
     return savedExpressions.some((e) => e.id === exprId);
@@ -38,7 +41,7 @@ export default function ScenarioPage() {
 
   function handleNext() {
     if (isLast) {
-      router.push(`/practice/${scenario!.id}`);
+      router.push(ROUTES.PRACTICE(scenario.id));
     } else {
       setCurrentIdx((i) => i + 1);
       setShowTranslation(false);
@@ -51,7 +54,7 @@ export default function ScenarioPage() {
       {/* Header */}
       <div>
         <button
-          onClick={() => router.push("/today")}
+          onClick={() => router.push(ROUTES.TODAY)}
           className="text-muted text-sm mb-2 hover:text-ink transition-colors"
         >
           ← Back
@@ -63,16 +66,11 @@ export default function ScenarioPage() {
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-border overflow-hidden">
-        <div
-          className="h-full rounded-full bg-accent transition-all duration-300"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <ProgressBar value={currentIdx + 1} max={sentences.length} />
 
       {/* Previous sentences (dimmed) */}
       <div className="flex flex-col gap-2">
-        {sentences.slice(0, currentIdx).map((s, i) => (
+        {sentences.slice(0, currentIdx).map((s) => (
           <div
             key={s.id}
             className="py-2 px-3 rounded-xl bg-surface-dim/50 text-sm text-muted"
@@ -128,17 +126,17 @@ export default function ScenarioPage() {
                       <p className="text-sm italic text-muted">
                         e.g. {expr.example}
                       </p>
-                      <button
+                      <Button
+                        size="sm"
+                        variant={isSaved(expr.id) ? "secondary" : "primary"}
                         onClick={() => handleSave(expr)}
                         disabled={isSaved(expr.id)}
-                        className={`self-start text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                          isSaved(expr.id)
-                            ? "bg-success/10 text-success"
-                            : "bg-accent text-white hover:bg-accent-dark"
+                        className={`self-start rounded-lg ${
+                          isSaved(expr.id) ? "bg-success/10 text-success border-success/20" : ""
                         }`}
                       >
                         {isSaved(expr.id) ? "Saved ✓" : "Save Expression"}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -150,12 +148,9 @@ export default function ScenarioPage() {
 
       {/* Navigation */}
       <div className="mt-auto pt-4 pb-4">
-        <button
-          onClick={handleNext}
-          className="w-full py-3.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
-        >
+        <Button onClick={handleNext} fullWidth>
           {isLast ? "Continue to Practice" : "Next Sentence"}
-        </button>
+        </Button>
         {!isLast && (
           <p className="text-center text-xs text-muted mt-2">
             {currentIdx + 1} of {sentences.length}

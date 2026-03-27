@@ -4,17 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren } from "react";
 
-const navItems = [
-  { href: "/today", label: "Today", icon: "☀" },
-  { href: "/library", label: "Expressions", icon: "📖" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
-];
+import { ROUTES, HIDE_NAV_PATHS } from "@/constants/routes";
 
-const hideNavPaths = ["/setup", "/scenario", "/practice", "/replay", "/complete"];
+const navItems = [
+  { href: ROUTES.TODAY, label: "Today", icon: "☀" },
+  { href: ROUTES.LIBRARY, label: "Expressions", icon: "📖" },
+  { href: ROUTES.SETTINGS, label: "Settings", icon: "⚙" },
+];
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
-  const showNav = !hideNavPaths.some(
+  const showNav = !HIDE_NAV_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
 

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { ROUTES } from "@/constants/routes";
 import { useStore } from "@/state/use-flowlingo-store";
 
 export default function HomePage() {
@@ -10,7 +11,16 @@ export default function HomePage() {
   const settings = useStore((s) => s.settings);
 
   useEffect(() => {
-    router.replace(settings ? "/today" : "/setup");
+    // Existing user with full settings → go to today
+    // User with only difficulty (from vocab test) → continue setup
+    // Brand new user → take vocab test first
+    if (settings && settings.domains.length > 0) {
+      router.replace(ROUTES.TODAY);
+    } else if (settings?.difficulty) {
+      router.replace(ROUTES.SETUP);
+    } else {
+      router.replace(ROUTES.VOCAB_TEST);
+    }
   }, [settings, router]);
 
   return (

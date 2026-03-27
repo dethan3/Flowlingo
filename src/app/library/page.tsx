@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Badge, PageHeader } from "@/components/ui";
 import { useStore } from "@/state/use-flowlingo-store";
 import type { Familiarity } from "@/types/domain";
 
@@ -12,10 +13,10 @@ const FILTERS: { value: Familiarity | "all"; label: string }[] = [
   { value: "mastered", label: "Mastered" },
 ];
 
-const FAMILIARITY_STYLES: Record<Familiarity, string> = {
-  new: "bg-accent-light text-accent-dark",
-  learning: "bg-warning/10 text-warning",
-  mastered: "bg-success/10 text-success",
+const FAMILIARITY_BADGE_VARIANT: Record<Familiarity, "accent" | "warning" | "success"> = {
+  new: "accent",
+  learning: "warning",
+  mastered: "success",
 };
 
 export default function LibraryPage() {
@@ -31,17 +32,11 @@ export default function LibraryPage() {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <div>
-        <p className="text-accent text-xs font-semibold tracking-widest uppercase mb-1">
-          Expression Library
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Your expressions
-        </h1>
-        <p className="text-muted text-sm mt-1">
-          {expressions.length} saved total
-        </p>
-      </div>
+      <PageHeader
+        label="Expression Library"
+        title="Your expressions"
+        subtitle={`${expressions.length} saved total`}
+      />
 
       {/* Filters */}
       <div className="flex gap-2">
@@ -85,13 +80,13 @@ export default function LibraryPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className="font-medium text-sm">{expr.text}</span>
-                  <span
-                    className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                      FAMILIARITY_STYLES[expr.familiarity]
-                    }`}
+                  <Badge
+                    variant={FAMILIARITY_BADGE_VARIANT[expr.familiarity]}
+                    size="sm"
+                    className="shrink-0"
                   >
                     {expr.familiarity}
-                  </span>
+                  </Badge>
                 </div>
                 <p className="text-muted text-xs mt-1">{expr.meaning}</p>
               </button>

@@ -1,14 +1,31 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { RequireScenario } from "@/components/require-scenario";
+import { Button, Card, ErrorBanner, PageHeader } from "@/components/ui";
+import { ROUTES } from "@/constants/routes";
 import { mockEvaluatePractice } from "@/services/mock-ai";
 import { useStore } from "@/state/use-flowlingo-store";
 
+const PRACTICE_TITLES: Record<string, string> = {
+  comprehension: "Check your understanding",
+  "fill-in": "Fill in the expression",
+  retell: "Retell in your own words",
+};
+
 export default function PracticePage() {
+  return (
+    <RequireScenario>
+      <PracticeContent />
+    </RequireScenario>
+  );
+}
+
+function PracticeContent() {
   const router = useRouter();
-  const scenario = useStore((s) => s.currentScenario);
+  const scenario = useStore((s) => s.currentScenario)!;
   const completePractice = useStore((s) => s.completePractice);
 
   const [userAnswer, setUserAnswer] = useState("");
@@ -17,52 +34,50 @@ export default function PracticePage() {
     correct: boolean;
     feedback: string;
   } | null>(null);
-
-  useEffect(() => {
-    if (!scenario) router.replace("/today");
-  }, [scenario, router]);
-
-  if (!scenario) return null;
+  const [error, setError] = useState<string | null>(null);
 
   const prompt = scenario.practicePrompt;
 
   function handleSubmit() {
-    const answer =
-      prompt.type === "comprehension" ? selectedOption ?? "" : userAnswer;
-    const result = mockEvaluatePractice({
-      practiceType: prompt.type,
-      userAnswer: answer,
-      referenceAnswer: prompt.referenceAnswer,
-    });
-    setFeedback(result);
+    setError(null);
+    try {
+      const answer =
+        prompt.type === "comprehension" ? selectedOption ?? "" : userAnswer;
+      const result = mockEvaluatePractice({
+        practiceType: prompt.type,
+        userAnswer: answer,
+        referenceAnswer: prompt.referenceAnswer,
+      });
+      setFeedback(result);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to evaluate your answer. Please try again."
+      );
+    }
   }
 
   function handleContinue() {
     completePractice();
-    router.push("/replay");
+    router.push(ROUTES.REPLAY);
   }
 
   function handleSkip() {
     completePractice();
-    router.push("/replay");
+    router.push(ROUTES.REPLAY);
   }
 
   return (
     <div className="flex flex-col gap-5 min-h-[80vh]">
       {/* Header */}
-      <div>
-        <p className="text-accent text-xs font-semibold tracking-widest uppercase mb-1">
-          Practice
-        </p>
-        <h1 className="text-xl font-bold tracking-tight">
-          {prompt.type === "comprehension" && "Check your understanding"}
-          {prompt.type === "fill-in" && "Fill in the expression"}
-          {prompt.type === "retell" && "Retell in your own words"}
-        </h1>
-      </div>
+      <PageHeader
+        label="Practice"
+        title={PRACTICE_TITLES[prompt.type] ?? "Practice"}
+      />
 
       {/* Question */}
-      <div className="rounded-2xl border border-border bg-surface p-5 flex flex-col gap-4">
+      <Card className="flex flex-col gap-4">
         <p className="text-base font-medium leading-relaxed">
           {prompt.question}
         </p>
@@ -109,6 +124,9 @@ export default function PracticePage() {
           />
         )}
 
+        {/* Error */}
+        {error && <ErrorBanner message={error} />}
+
         {/* Feedback */}
         {feedback && (
           <div
@@ -121,37 +139,31 @@ export default function PracticePage() {
             {feedback.feedback}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Actions */}
       <div className="mt-auto pt-4 pb-4 flex flex-col gap-2">
         {!feedback ? (
           <>
-            <button
+            <Button
               onClick={handleSubmit}
+              fullWidth
               disabled={
                 prompt.type === "comprehension"
                   ? !selectedOption
                   : userAnswer.trim().length === 0
               }
-              className="w-full py-3.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors disabled:opacity-40"
             >
               Check
-            </button>
-            <button
-              onClick={handleSkip}
-              className="w-full py-3 rounded-xl text-sm font-medium text-muted hover:text-ink transition-colors"
-            >
+            </Button>
+            <Button variant="ghost" onClick={handleSkip} fullWidth>
               Skip for now
-            </button>
+            </Button>
           </>
         ) : (
-          <button
-            onClick={handleContinue}
-            className="w-full py-3.5 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
-          >
+          <Button onClick={handleContinue} fullWidth>
             Continue to Review
-          </button>
+          </Button>
         )}
       </div>
     </div>

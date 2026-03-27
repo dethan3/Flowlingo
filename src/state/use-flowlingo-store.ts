@@ -6,8 +6,10 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type {
   DailyRecord,
   Expression,
+  LearningProgress,
   Scenario,
   UserSettings,
+  VocabTestResult,
 } from "@/types/domain";
 
 interface FlowlingoState {
@@ -16,10 +18,13 @@ interface FlowlingoState {
   savedExpressions: Expression[];
   dailyRecords: DailyRecord[];
   recentScenarioTitles: string[];
+  vocabTestResult: VocabTestResult | null;
+  learningProgress: LearningProgress | null;
 
   saveSettings: (s: UserSettings) => void;
   updateSettings: (patch: Partial<UserSettings>) => void;
   setCurrentScenario: (scenario: Scenario) => void;
+  clearCurrentScenario: () => void;
   saveExpression: (expr: Expression) => void;
   updateExpressionFamiliarity: (
     id: string,
@@ -28,6 +33,9 @@ interface FlowlingoState {
   completePractice: () => void;
   completeReplay: () => void;
   completeDay: () => void;
+  saveVocabTestResult: (result: VocabTestResult) => void;
+  startLearningPath: (pathId: string) => void;
+  advanceLearningPath: (stepId: string) => void;
   resetAll: () => void;
 }
 
@@ -62,12 +70,16 @@ const initialState: Pick<
   | "savedExpressions"
   | "dailyRecords"
   | "recentScenarioTitles"
+  | "vocabTestResult"
+  | "learningProgress"
 > = {
   settings: null,
   currentScenario: null,
   savedExpressions: [],
   dailyRecords: [],
   recentScenarioTitles: [],
+  vocabTestResult: null,
+  learningProgress: null,
 };
 
 export const useStore = create<FlowlingoState>()(
@@ -92,6 +104,8 @@ export const useStore = create<FlowlingoState>()(
             ),
           ].slice(0, 20),
         })),
+
+      clearCurrentScenario: () => set({ currentScenario: null }),
 
       saveExpression: (expr) =>
         set((state) => {
@@ -182,10 +196,38 @@ export const useStore = create<FlowlingoState>()(
           return { dailyRecords: records };
         }),
 
+      saveVocabTestResult: (result) => set({ vocabTestResult: result }),
+
+      startLearningPath: (pathId) =>
+        set({
+          learningProgress: {
+            pathId,
+            currentStepIndex: 0,
+            completedStepIds: [],
+            startedAt: new Date().toISOString(),
+          },
+        }),
+
+      advanceLearningPath: (stepId) =>
+        set((state) => {
+          if (!state.learningProgress) return state;
+          const completed = state.learningProgress.completedStepIds.includes(stepId)
+            ? state.learningProgress.completedStepIds
+            : [...state.learningProgress.completedStepIds, stepId];
+          return {
+            learningProgress: {
+              ...state.learningProgress,
+              completedStepIds: completed,
+              currentStepIndex: completed.length,
+            },
+          };
+        }),
+
       resetAll: () => set(initialState),
     }),
     {
       name: "flowlingo-v2",
+      version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         settings: state.settings,
@@ -193,7 +235,26 @@ export const useStore = create<FlowlingoState>()(
         savedExpressions: state.savedExpressions,
         dailyRecords: state.dailyRecords,
         recentScenarioTitles: state.recentScenarioTitles,
+        vocabTestResult: state.vocabTestResult,
+        learningProgress: state.learningProgress,
       }),
+      migrate: (persisted: unknown, version: number) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const state = persisted as Record<string, any>;
+        if (version === 0) {
+          // v0 → v1: add learningMode to existing settings, add new top-level fields
+          if (state.settings && !state.settings.learningMode) {
+            state.settings.learningMode = "custom";
+          }
+          if (state.vocabTestResult === undefined) {
+            state.vocabTestResult = null;
+          }
+          if (state.learningProgress === undefined) {
+            state.learningProgress = null;
+          }
+        }
+        return state as FlowlingoState;
+      },
     }
   )
 );
